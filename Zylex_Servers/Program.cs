@@ -7,6 +7,7 @@ using Newtonsoft.Json;
 using System.Net.Sockets;
 using System.Net;
 using System.Text;
+using System.Runtime.CompilerServices;
 
 namespace Zylex_Servers
 {
@@ -15,7 +16,8 @@ namespace Zylex_Servers
         public static byte ServerType;
         public static byte GameEngineType;
         public static int Port;
-        public static Dictionary<string, object> Settings = new Dictionary<string, object>();   
+        public static Dictionary<string, object> Settings = new Dictionary<string, object>();
+        public static TcpListener listener;
         public static string appPath = AppDomain.CurrentDomain.BaseDirectory;
         static void Main(string[] args)
         {
@@ -35,6 +37,11 @@ namespace Zylex_Servers
                 Console.WriteLine("Loaded");
                 Console.Clear();
                 OpenServer();
+                Console.WriteLine("Press any key to close the server..");
+                Console.ReadKey();
+                CloseServer();
+                Console.WriteLine("Press any key to close the window..");
+                Console.ReadKey();
             }
             else
             {
@@ -42,9 +49,9 @@ namespace Zylex_Servers
             }
         }
 
-        static async void OpenServer()
+        public static async void OpenServer()
         {
-            TcpListener listener = new TcpListener(IPAddress.Any, Port);
+            listener = new TcpListener(IPAddress.Any, Port);
             listener.Start();
             Console.WriteLine("Started server on: " + ApplicationUtils.GetPublicIpAddress() + ":" + Port);
 
@@ -57,6 +64,9 @@ namespace Zylex_Servers
                 // Handle the client in a new task
                 _ = Task.Run(() => HandleClientAsync(client));
             }
+
+            
+
         }
         private static async Task HandleClientAsync(TcpClient client)
         {
@@ -93,6 +103,11 @@ namespace Zylex_Servers
                     Console.WriteLine("Client disconnected.");
                 }
             }
+        }
+
+        public static async void CloseServer()
+        {
+            listener.Stop();
         }
 
 
