@@ -18,6 +18,7 @@ namespace Zylex_Servers
         public static int Port;
         public static Dictionary<string, object> Settings = new Dictionary<string, object>();
         public static TcpListener listener;
+        public static TcpClient MasterClient;
         public static string appPath = AppDomain.CurrentDomain.BaseDirectory;
         static void Main(string[] args)
         {
