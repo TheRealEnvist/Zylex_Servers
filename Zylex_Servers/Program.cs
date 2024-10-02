@@ -33,7 +33,7 @@ namespace Zylex_Servers
                 Console.WriteLine("Loading Server Settings");
                 ServerType = Byte.Parse(Settings["Server Type"].ToString());
                 GameEngineType = Byte.Parse(Settings["Engine Type"].ToString());
-                Port = int.Parse(Settings["Engine Type"].ToString());
+                Port = int.Parse(Settings["Port"].ToString());
                 Console.WriteLine("Loaded");
                 Console.Clear();
                 OpenServer();
