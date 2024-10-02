@@ -12,6 +12,7 @@ namespace Zylex_Servers
     {
         public static byte ServerType;
         public static byte GameEngineType;
+        public static byte ConnectionMethod;
         public static int Port;
         public static string appPath = AppDomain.CurrentDomain.BaseDirectory;
         public static void Install()
@@ -56,6 +57,26 @@ namespace Zylex_Servers
                     return;
                 }
                 GameEngineType = Byte.Parse(type);
+
+                Console.Clear();
+                Console.WriteLine("--Server Installer--");
+                Console.WriteLine(" ");
+                Console.WriteLine("Type of Connection");
+                Console.WriteLine(" ");
+                Console.WriteLine("1. Server > Client");
+                Console.WriteLine("2. Client > Client");
+                Console.WriteLine("3. Master Client > Server > Client");
+                Console.WriteLine("  ");
+                Console.WriteLine("______________________");
+                Console.WriteLine(" ");
+                Console.Write("Connection Type: ");
+                type = Console.ReadLine();
+                if (Byte.Parse(type) > 3 || Byte.Parse(type) < 1)
+                {
+                    Console.Write("Invalid connection type.. Exiting Installer...");
+                    return;
+                }
+                ConnectionMethod = Byte.Parse(type);
             }
 
             Console.Clear();
@@ -140,6 +161,7 @@ namespace Zylex_Servers
             {
                 { "Server Type", ServerType},
                 { "Engine Type",  GameEngineType},
+                { "Connection Type",  ConnectionMethod},
                 { "Port",  Port},
                 { "Installer Completed", true}
             };

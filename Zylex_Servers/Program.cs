@@ -15,6 +15,7 @@ namespace Zylex_Servers
     {
         public static byte ServerType;
         public static byte GameEngineType;
+        public static byte ConnectionMethod;
         public static int Port;
         public static Dictionary<string, object> Settings = new Dictionary<string, object>();
         public static TcpListener listener;
@@ -34,6 +35,7 @@ namespace Zylex_Servers
                 Console.WriteLine("Loading Server Settings");
                 ServerType = Byte.Parse(Settings["Server Type"].ToString());
                 GameEngineType = Byte.Parse(Settings["Engine Type"].ToString());
+                ConnectionMethod = Byte.Parse(Settings["Connection Type"].ToString());
                 Port = int.Parse(Settings["Port"].ToString());
                 Console.WriteLine("Loaded");
                 Console.Clear();
