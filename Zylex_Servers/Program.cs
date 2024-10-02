@@ -1,6 +1,12 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Diagnostics;
 using System.Net.Http;
 using System.Threading.Tasks;
+using Newtonsoft.Json;
+using System.Net.Sockets;
+using System.Net;
+using System.Text;
 
 namespace Zylex_Servers
 {
@@ -9,152 +15,86 @@ namespace Zylex_Servers
         public static byte ServerType;
         public static byte GameEngineType;
         public static int Port;
+        public static Dictionary<string, object> Settings = new Dictionary<string, object>();   
         public static string appPath = AppDomain.CurrentDomain.BaseDirectory;
         static void Main(string[] args)
         {
-            Console.Clear();
-            Console.WriteLine("--Server Installer--");
-            Console.WriteLine(" ");
-            Console.WriteLine("What kind of server would you like?");
-            Console.WriteLine(" ");
-            Console.WriteLine("1. Game Server");
-            Console.WriteLine("2. Generic Server");
-            Console.WriteLine(" ");
-            Console.WriteLine("______________________");
-            Console.WriteLine("  ");
-            Console.Write("Server Type: ");
-            string type = Console.ReadLine();
-            if(Byte.Parse(type) > 2 || Byte.Parse(type) < 1)
-            {
-                Console.Write("Invalid server type.. Exiting Installer...");
-                return;
-            }
-            ServerType = Byte.Parse(type);
+            LoadServerSettings();
+        }
 
-            if(ServerType == 1)
+        static void LoadServerSettings()
+        {
+            if (File.Exists(appPath + "StoredData/InstallerState.json"))
             {
+                Console.WriteLine("Reading server state..");
+                Settings = ApplicationUtils.ReadJsonFileToDictionary(appPath + "StoredData/InstallerState.json");
+                Console.WriteLine("Loading Server Settings");
+                ServerType = Byte.Parse(Settings["Server Type"].ToString());
+                GameEngineType = Byte.Parse(Settings["Engine Type"].ToString());
+                Port = int.Parse(Settings["Engine Type"].ToString());
+                Console.WriteLine("Loaded");
                 Console.Clear();
-                Console.WriteLine("--Server Installer--");
-                Console.WriteLine(" ");
-                Console.WriteLine("What engine is this running on?");
-                Console.WriteLine(" ");
-                Console.WriteLine("1. Unity");
-                Console.WriteLine("2. Unreal Engine");
-                Console.WriteLine("3. Other");
-                Console.WriteLine("  ");
-                Console.WriteLine("______________________");
-                Console.WriteLine(" ");
-                Console.Write("Engine Type: ");
-                type = Console.ReadLine();
-                if (Byte.Parse(type) > 3 || Byte.Parse(type) < 1)
-                {
-                    Console.Write("Invalid engine type.. Exiting Installer...");
-                    return;
-                }
-                GameEngineType = Byte.Parse(type);
-            }
-
-            Console.Clear();
-            Console.WriteLine("--Server Installer--");
-            Console.WriteLine(" ");
-            Console.WriteLine("Installing...");
-            Console.WriteLine(" ");
-            Console.WriteLine("________LOGS________");
-            Console.WriteLine(" ");
-            if(!Directory.Exists(appPath + "StoredData"))
-            {
-                Directory.CreateDirectory(appPath + "StoredData");
-                Console.WriteLine("Created folder \"StoredData\" at");
-                Console.WriteLine(appPath);
-                Console.WriteLine(" ");
-            }
-            
-            if (!Directory.Exists(appPath + "StoredData/Database"))
-            {
-                Directory.CreateDirectory(appPath + "StoredData/Database");
-                Console.WriteLine("Created folder \"Database\" at");
-                Console.WriteLine(appPath + "StoredData\\");
-                Console.WriteLine(" ");
-            }
-            
-            if (ServerType == 1)
-            {
-                if (!Directory.Exists(appPath + "StoredData/GameData"))
-                {
-                    Directory.CreateDirectory(appPath + "StoredData/GameData");
-                    Console.WriteLine("Created folder \"GameData\" at");
-                    Console.WriteLine(appPath + "StoredData\\");
-                    Console.WriteLine(" ");
-                }
-                
-                if (!Directory.Exists(appPath + "StoredData/GameData/SavedGameState"))
-                {
-                    Directory.CreateDirectory(appPath + "StoredData/GameData/SavedGameState");
-                    Console.WriteLine("Created folder \"SavedGameState\" at");
-                    Console.WriteLine(appPath + "StoredData\\GameData\\");
-                    Console.WriteLine(" ");
-                }
-                
-                if (!Directory.Exists(appPath + "StoredData/GameData/GameFile"))
-                {
-                    Directory.CreateDirectory(appPath + "StoredData/GameData/GameFile");
-                    Console.WriteLine("Created folder \"GameFile\" at");
-                    Console.WriteLine(appPath + "StoredData\\GameData\\");
-                    Console.WriteLine(" ");
-                }
-                
-
-            }
-
-            Console.Clear();
-            Console.WriteLine("--Server Setup--");
-            Console.WriteLine(" ");
-            Console.WriteLine("What port would you like the server to run on? Leave blank for deafult port.");
-            Console.WriteLine(" ");
-            Console.WriteLine("______________________");
-            Console.WriteLine(" ");
-            Console.Write(GetPublicIpAddress() + ":");
-
-            type = Console.ReadLine();
-            if (IsValidInteger(type))
-            {
-                Port = Convert.ToInt32(type);
+                OpenServer();
             }
             else
             {
-                Console.Write("Invalid port.. Exiting Installer...");
-                return;
+                Installer.Install();
             }
-            return;
         }
 
-        static string GetPublicIpAddress()
+        static async void OpenServer()
         {
-            // Call the async method synchronously
-            return GetPublicIpAddressAsync().GetAwaiter().GetResult();
-        }
+            TcpListener listener = new TcpListener(IPAddress.Any, Port);
+            listener.Start();
+            Console.WriteLine("Started server on: " + ApplicationUtils.GetPublicIpAddress() + ":" + Port);
 
-        static async Task<string> GetPublicIpAddressAsync()
-        {
-            using (HttpClient client = new HttpClient())
+            while (true)
             {
+                // Accept an incoming TCP client connection
+                TcpClient client = await listener.AcceptTcpClientAsync();
+                Console.WriteLine("Client connected!");
+
+                // Handle the client in a new task
+                _ = Task.Run(() => HandleClientAsync(client));
+            }
+        }
+        private static async Task HandleClientAsync(TcpClient client)
+        {
+            using (client)
+            {
+                NetworkStream stream = client.GetStream();
+                byte[] buffer = new byte[1024];
+                int bytesRead;
+
                 try
                 {
-                    HttpResponseMessage response = await client.GetAsync("https://ipinfo.io/ip");
-                    response.EnsureSuccessStatusCode();
-                    string ip = await response.Content.ReadAsStringAsync();
-                    return ip.Trim();
+                    // Read data from the client
+                    while ((bytesRead = await stream.ReadAsync(buffer, 0, buffer.Length)) != 0)
+                    {
+                        // Convert the bytes to a string
+                        string clientMessage = Encoding.UTF8.GetString(buffer, 0, bytesRead);
+                        Console.WriteLine($"Received: {clientMessage}");
+
+                        // Prepare a response message
+                        string responseMessage = $"Echo: {clientMessage}";
+                        byte[] responseBuffer = Encoding.UTF8.GetBytes(responseMessage);
+
+                        // Send the response back to the client
+                        await stream.WriteAsync(responseBuffer, 0, responseBuffer.Length);
+                        Console.WriteLine($"Sent: {responseMessage}");
+                    }
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"Error retrieving IP address: {ex.Message}");
-                    return "Unknown IP";
+                    Console.WriteLine($"Error: {ex.Message}");
+                }
+                finally
+                {
+                    Console.WriteLine("Client disconnected.");
                 }
             }
         }
-        static bool IsValidInteger(string input)
-        {
-            return int.TryParse(input, out _); // Use out _ to ignore the converted value
-        }
+
+
     }
 }
