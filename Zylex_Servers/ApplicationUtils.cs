@@ -61,5 +61,50 @@ namespace Zylex_Servers
 
             return dictionary;
         }
+
+        public static Dictionary<string, object> JsonStringToDictionary(string jsonString)
+        {
+            // Deserialize the JSON string into a Dictionary
+            var dictionary = JsonConvert.DeserializeObject<Dictionary<string, object>>(jsonString);
+            return dictionary;
+        }
+
+        public static bool IsValidJson(string input)
+        {
+            if (string.IsNullOrWhiteSpace(input))
+            {
+                return false; // An empty or null string cannot be a valid JSON.
+            }
+
+            input = input.Trim(); // Remove any leading or trailing whitespace.
+
+            // Check if the input starts and ends with the common JSON delimiters.
+            if ((input.StartsWith("{") && input.EndsWith("}")) || // JSON Object
+                (input.StartsWith("[") && input.EndsWith("]")))   // JSON Array
+            {
+                try
+                {
+                    var obj = JsonConvert.DeserializeObject<object>(input);
+                    return true;
+                }
+                catch (JsonException)
+                {
+                    return false;
+                }
+                catch (Exception)
+                {
+                    return false;
+                }
+            }
+
+            return false;
+        }
+
+        public static string DictionaryToJson(Dictionary<string, object> dictionary)
+        {
+            // Serialize the dictionary to a JSON string
+            string jsonString = JsonConvert.SerializeObject(dictionary, Formatting.Indented);
+            return jsonString;
+        }
     }
 }
