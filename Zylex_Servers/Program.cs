@@ -94,7 +94,7 @@ namespace Zylex_Servers
                         }
 
                         // Prepare a response message
-                        string responseMessage = $"Echo: {clientMessage}";
+                        string responseMessage = $"{clientMessage}";
                         byte[] responseBuffer = Encoding.UTF8.GetBytes(responseMessage);
 
                         // Send the response back to the client
