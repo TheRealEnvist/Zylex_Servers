@@ -5,6 +5,7 @@ using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
 using System.Text;
+using System.Text.Json;
 using System.Threading.Tasks;
 
 namespace Zylex_Servers
@@ -88,7 +89,7 @@ namespace Zylex_Servers
                     var obj = JsonConvert.DeserializeObject<object>(input);
                     return true;
                 }
-                catch (JsonException)
+                catch (System.Text.Json.JsonException)
                 {
                     return false;
                 }
@@ -151,6 +152,21 @@ namespace Zylex_Servers
             }
 
             return dictionary;
+        }
+        public static string ListToJson<T>(List<T> list)
+        {
+            if (list == null)
+                throw new ArgumentNullException(nameof(list));
+
+            return JsonConvert.SerializeObject(list, Formatting.Indented);
+        }
+        public static List<T> JsonToList<T>(string json)
+        {
+            if (string.IsNullOrWhiteSpace(json))
+                throw new ArgumentNullException(nameof(json));
+
+            // Deserialize the JSON string back into a List of T
+            return JsonConvert.DeserializeObject<List<T>>(json);
         }
     }
 }

@@ -19,6 +19,7 @@ namespace Zylex_Servers
         public static int Port;
         public static Dictionary<string, object> Settings = new Dictionary<string, object>();
         public static List<TcpClient> Clients = new List<TcpClient>();
+        public static Dictionary<TcpClient, int> ConnectionIDs = new Dictionary<TcpClient, int>();
         public static Dictionary<int, Dictionary<string, string>> ObjectsModified = new Dictionary<int, Dictionary<string,string>>();
         public static TcpListener listener;
         public static TcpClient MasterClient;
@@ -66,8 +67,9 @@ namespace Zylex_Servers
                 TcpClient client = await listener.AcceptTcpClientAsync();
                 Console.WriteLine("Client connected!");
                 Clients.Add(client);
+                ConnectionIDs.Add(client, GenerateUniqueConnectionID(ConnectionIDs.Values.ToList<int>()));
 
-                string responseMessage = BuildServerSyncLoad();
+                string responseMessage = BuildServerSyncLoad(ConnectionIDs[client]);
                 byte[] responseBuffer = Encoding.UTF8.GetBytes(responseMessage);
 
                 await client.GetStream().WriteAsync(responseBuffer, 0, responseBuffer.Length);
@@ -79,8 +81,23 @@ namespace Zylex_Servers
             
 
         }
-        
-        private static string BuildServerSyncLoad()
+
+        static private int GenerateUniqueConnectionID(List<int> existingIDs)
+        {
+            int connectionID;
+            Random random = new Random();
+
+            do
+            {
+                connectionID = random.Next(); 
+            }
+            while (existingIDs.Contains(connectionID)); 
+
+            return connectionID;
+        }
+
+
+        private static string BuildServerSyncLoad(int ConnectionID)
         {
             Dictionary<int, string> dict = new Dictionary<int, string>();
             Dictionary<string, object> dict2 = new Dictionary<string, object>();
@@ -91,6 +108,7 @@ namespace Zylex_Servers
                 dict[i] = ApplicationUtils.DictionaryToJson(ObjectsModified[i]);
             }
             dict2["value"] = dict;
+            dict2["ConnectionID"] = ConnectionID;
             return ApplicationUtils.DictionaryToJson(dict2).ToString();
         }
         private static async Task HandleClientAsync(TcpClient client)
@@ -152,6 +170,7 @@ namespace Zylex_Servers
                 {
                     Console.WriteLine("Client disconnected.");
                     Clients.Remove(client);
+                    ConnectionIDs.Remove(client);
                 }
             }
         }
