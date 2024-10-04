@@ -18,6 +18,7 @@ namespace Zylex_Servers
         public static byte ConnectionMethod;
         public static int Port;
         public static Dictionary<string, object> Settings = new Dictionary<string, object>();
+        public static List<TcpClient> Clients = new List<TcpClient>();
         public static TcpListener listener;
         public static TcpClient MasterClient;
         public static string appPath = AppDomain.CurrentDomain.BaseDirectory;
@@ -63,6 +64,7 @@ namespace Zylex_Servers
                 // Accept an incoming TCP client connection
                 TcpClient client = await listener.AcceptTcpClientAsync();
                 Console.WriteLine("Client connected!");
+                Clients.Add(client);
 
                 // Handle the client in a new task
                 _ = Task.Run(() => HandleClientAsync(client));
@@ -98,7 +100,15 @@ namespace Zylex_Servers
                         byte[] responseBuffer = Encoding.UTF8.GetBytes(responseMessage);
 
                         // Send the response back to the client
-                        await stream.WriteAsync(responseBuffer, 0, responseBuffer.Length);
+                        if(ConnectionMethod == 4)
+                        {
+                            SendToAllClients(responseMessage);
+                        }
+                        else
+                        {
+                            await stream.WriteAsync(responseBuffer, 0, responseBuffer.Length);
+                        }
+                        
                         Console.WriteLine($"Sent: {responseMessage}");
                     }
                 }
@@ -109,10 +119,19 @@ namespace Zylex_Servers
                 finally
                 {
                     Console.WriteLine("Client disconnected.");
+                    Clients.Remove(client);
                 }
             }
         }
 
+        public static async void SendToAllClients(string message)
+        {
+            byte[] responseBuffer = Encoding.UTF8.GetBytes(message);
+            foreach (TcpClient i in Clients)
+            {
+                await i.GetStream().WriteAsync(responseBuffer, 0, responseBuffer.Length);
+            }
+        }
         public static async void CloseServer()
         {
             listener.Stop();

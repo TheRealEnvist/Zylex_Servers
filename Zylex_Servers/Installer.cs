@@ -66,12 +66,13 @@ namespace Zylex_Servers
                 Console.WriteLine("1. Server > Client");
                 Console.WriteLine("2. Client > Client");
                 Console.WriteLine("3. Master Client > Server > Client");
+                Console.WriteLine("4. Client > Server > All Clients (Unsecure)");
                 Console.WriteLine("  ");
                 Console.WriteLine("______________________");
                 Console.WriteLine(" ");
                 Console.Write("Connection Type: ");
                 type = Console.ReadLine();
-                if (Byte.Parse(type) > 3 || Byte.Parse(type) < 1)
+                if (Byte.Parse(type) > 4 || Byte.Parse(type) < 1)
                 {
                     Console.Write("Invalid connection type.. Exiting Installer...");
                     return;
