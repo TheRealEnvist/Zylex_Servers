@@ -83,11 +83,15 @@ namespace Zylex_Servers
         private static string BuildServerSyncLoad()
         {
             Dictionary<int,string> dict = new Dictionary<int,string>();
-            foreach(int i in ObjectsModified.Keys)
+            Dictionary<string, object> dict2 = new Dictionary<string, object>();
+            dict2["type"] = "ServerSync";
+
+            foreach (int i in ObjectsModified.Keys)
             {
                 dict[i] = ApplicationUtils.DictionaryToJson(ObjectsModified[i]);
             }
-            return ApplicationUtils.DictionaryToJson(dict).ToString();
+            dict2["value"] = dict;
+            return ApplicationUtils.DictionaryToJson(dict2).ToString();
         }
         private static async Task HandleClientAsync(TcpClient client)
         {
