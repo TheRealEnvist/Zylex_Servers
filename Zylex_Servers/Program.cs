@@ -133,15 +133,26 @@ namespace Zylex_Servers
                             Dictionary<string, object> json = ApplicationUtils.JsonStringToDictionary(clientMessage);
                             if(ConnectionMethod == 4)
                             {
-                                if (ObjectsModified.ContainsKey(int.Parse(json["instanceID"].ToString())))
+                                if (json.ContainsKey("type"))
                                 {
-                                    ObjectsModified[int.Parse(json["instanceID"].ToString())][json["type"].ToString()] = json["value"].ToString();
+                                    if (json["type"].ToString() == "Packet")
+                                    {
+                                        SendToOtherClients(clientMessage, client);
+                                    }
                                 }
                                 else
                                 {
-                                    ObjectsModified[int.Parse(json["instanceID"].ToString())] = new Dictionary<string, string>();
-                                    ObjectsModified[int.Parse(json["instanceID"].ToString())][json["type"].ToString()] = json["value"].ToString();
+                                    if (ObjectsModified.ContainsKey(int.Parse(json["instanceID"].ToString())))
+                                    {
+                                        ObjectsModified[int.Parse(json["instanceID"].ToString())][json["type"].ToString()] = json["value"].ToString();
+                                    }
+                                    else
+                                    {
+                                        ObjectsModified[int.Parse(json["instanceID"].ToString())] = new Dictionary<string, string>();
+                                        ObjectsModified[int.Parse(json["instanceID"].ToString())][json["type"].ToString()] = json["value"].ToString();
+                                    }
                                 }
+                                
                             }
                         }
 
@@ -181,6 +192,18 @@ namespace Zylex_Servers
             foreach (TcpClient i in Clients)
             {
                 await i.GetStream().WriteAsync(responseBuffer, 0, responseBuffer.Length);
+            }
+        }
+
+        public static async void SendToOtherClients(string message, TcpClient client)
+        {
+            byte[] responseBuffer = Encoding.UTF8.GetBytes(message);
+            foreach (TcpClient i in Clients)
+            {
+                if(i != client)
+                {
+                    await i.GetStream().WriteAsync(responseBuffer, 0, responseBuffer.Length);
+                }
             }
         }
         public static async void CloseServer()
