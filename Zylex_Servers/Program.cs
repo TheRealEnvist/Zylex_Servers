@@ -138,6 +138,7 @@ namespace Zylex_Servers
                                     if (json["type"].ToString() == "Packet")
                                     {
                                         SendToOtherClients(clientMessage, client);
+                                        return;
                                     }
                                 }
                                 else
@@ -200,7 +201,7 @@ namespace Zylex_Servers
             byte[] responseBuffer = Encoding.UTF8.GetBytes(message);
             foreach (TcpClient i in Clients)
             {
-                if(i.GetStream() != client.GetStream())
+                if(i != client)
                 {
                     await i.GetStream().WriteAsync(responseBuffer, 0, responseBuffer.Length);
                 }
