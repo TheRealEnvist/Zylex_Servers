@@ -82,7 +82,7 @@ namespace Zylex_Servers
         
         private static string BuildServerSyncLoad()
         {
-            Dictionary<int,string> dict = new Dictionary<int,string>();
+            Dictionary<int, string> dict = new Dictionary<int, string>();
             Dictionary<string, object> dict2 = new Dictionary<string, object>();
             dict2["type"] = "ServerSync";
 
