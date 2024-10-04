@@ -200,7 +200,7 @@ namespace Zylex_Servers
             byte[] responseBuffer = Encoding.UTF8.GetBytes(message);
             foreach (TcpClient i in Clients)
             {
-                if(i != client)
+                if(i.GetStream() != client.GetStream())
                 {
                     await i.GetStream().WriteAsync(responseBuffer, 0, responseBuffer.Length);
                 }
