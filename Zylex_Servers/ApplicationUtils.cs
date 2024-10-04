@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -105,6 +106,27 @@ namespace Zylex_Servers
             // Serialize the dictionary to a JSON string
             string jsonString = JsonConvert.SerializeObject(dictionary, Formatting.Indented);
             return jsonString;
+        }
+
+        public static Dictionary<string, object> ToDictionary(this object obj)
+        {
+            if (obj == null)
+                throw new ArgumentNullException(nameof(obj));
+
+            Dictionary<string, object> dictionary = new Dictionary<string, object>();
+
+            // Get all properties of the object
+            PropertyInfo[] properties = obj.GetType().GetProperties(BindingFlags.Public | BindingFlags.Instance);
+
+            foreach (PropertyInfo property in properties)
+            {
+                if (property.CanRead) // Check if the property can be read
+                {
+                    dictionary.Add(property.Name, property.GetValue(obj, null));
+                }
+            }
+
+            return dictionary;
         }
     }
 }

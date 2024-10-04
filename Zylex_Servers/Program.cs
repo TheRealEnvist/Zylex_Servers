@@ -19,6 +19,7 @@ namespace Zylex_Servers
         public static int Port;
         public static Dictionary<string, object> Settings = new Dictionary<string, object>();
         public static List<TcpClient> Clients = new List<TcpClient>();
+        public static Dictionary<int, Dictionary<string, string>> ObjectsModified = new Dictionary<int, Dictionary<string,string>>();
         public static TcpListener listener;
         public static TcpClient MasterClient;
         public static string appPath = AppDomain.CurrentDomain.BaseDirectory;
@@ -93,6 +94,18 @@ namespace Zylex_Servers
                         {
                             Console.WriteLine("Received JSON");
                             Dictionary<string, object> json = ApplicationUtils.JsonStringToDictionary(clientMessage);
+                            if(ConnectionMethod == 4)
+                            {
+                                if (ObjectsModified.ContainsKey(int.Parse(json["instanceID"].ToString())))
+                                {
+                                    ObjectsModified[int.Parse(json["instanceID"].ToString())][json["type"].ToString()] = json["value"].ToString();
+                                }
+                                else
+                                {
+                                    ObjectsModified[int.Parse(json["instanceID"].ToString())] = new Dictionary<string, string>();
+                                    ObjectsModified[int.Parse(json["instanceID"].ToString())][json["type"].ToString()] = json["value"].ToString();
+                                }
+                            }
                         }
 
                         // Prepare a response message
