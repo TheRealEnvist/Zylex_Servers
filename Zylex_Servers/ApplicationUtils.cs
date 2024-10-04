@@ -107,6 +107,30 @@ namespace Zylex_Servers
             string jsonString = JsonConvert.SerializeObject(dictionary, Formatting.Indented);
             return jsonString;
         }
+        public static string DictionaryToJson(Dictionary<string, string> dictionary)
+        {
+            // Serialize the dictionary to a JSON string
+            string jsonString = JsonConvert.SerializeObject(dictionary, Formatting.Indented);
+            return jsonString;
+        }
+        public static string DictionaryToJson(Dictionary<int, string> dictionary)
+        {
+            // Serialize the dictionary to a JSON string
+            string jsonString = JsonConvert.SerializeObject(dictionary, Formatting.Indented);
+            return jsonString;
+        }
+        public static string DictionaryToJson(Dictionary<object, object> dictionary)
+        {
+            // Serialize the dictionary to a JSON string
+            string jsonString = JsonConvert.SerializeObject(dictionary, Formatting.Indented);
+            return jsonString;
+        }
+        public static string DictionaryToJson(Dictionary<object, Dictionary<string, string>> dictionary)
+        {
+            // Serialize the dictionary to a JSON string
+            string jsonString = JsonConvert.SerializeObject(dictionary, Formatting.Indented);
+            return jsonString;
+        }
 
         public static Dictionary<string, object> ToDictionary(this object obj)
         {
