@@ -67,12 +67,22 @@ namespace Zylex_Servers
                 Console.WriteLine("Client connected!");
                 Clients.Add(client);
 
+                string responseMessage = BuildServerSyncLoad();
+                byte[] responseBuffer = Encoding.UTF8.GetBytes(responseMessage);
+
+                await client.GetStream().WriteAsync(responseBuffer, 0, responseBuffer.Length);
+
                 // Handle the client in a new task
                 _ = Task.Run(() => HandleClientAsync(client));
             }
 
             
 
+        }
+        
+        private static string BuildServerSyncLoad()
+        {
+            return ObjectsModified.ToString();
         }
         private static async Task HandleClientAsync(TcpClient client)
         {
