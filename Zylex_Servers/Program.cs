@@ -127,7 +127,7 @@ namespace Zylex_Servers
                     {
                         // Convert the bytes to a string
                         string clientMessage = Encoding.UTF8.GetString(buffer, 0, bytesRead);
-                        Console.WriteLine($"Received: {clientMessage}");
+                        //Console.WriteLine($"Received: {clientMessage}");
                         if(ApplicationUtils.IsValidJson(clientMessage))
                         {
                             Console.WriteLine("Received JSON");
@@ -138,10 +138,10 @@ namespace Zylex_Servers
                                 {
                                     if (json["type"].ToString() == "Packet")
                                     {
-                                        SendToOtherClients(clientMessage,client);
+                                        Console.WriteLine("Recived Packet | Decoding on server side..");
                                         Dictionary<string, object> dict = ApplicationUtils.JsonStringToDictionary(clientMessage);
                                         Dictionary<int, Dictionary<string, object>> Packet = DecodePacket(dict["value"].ToString());
-                                        foreach(Dictionary<string, object> i in Packet.Values)
+                                        foreach (Dictionary<string, object> i in Packet.Values)
                                         {
                                             if (ObjectsModified.ContainsKey(int.Parse(i["instanceID"].ToString())))
                                             {
@@ -153,6 +153,10 @@ namespace Zylex_Servers
                                                 ObjectsModified[int.Parse(i["instanceID"].ToString())][i["type"].ToString()] = i["value"].ToString();
                                             }
                                         }
+                                        Console.WriteLine("Updated server status!");
+                                        SendToOtherClients(clientMessage,client);
+                                        Console.WriteLine("Packet sent to other clients..");
+
                                         return;
                                     }
                                 }
