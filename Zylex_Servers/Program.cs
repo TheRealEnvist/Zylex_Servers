@@ -129,6 +129,7 @@ namespace Zylex_Servers
                         catch (Exception ex)
                         {
                             Console.WriteLine("Couldnt parse JSON");
+                            Console.WriteLine(ex.Message);
                             return;
                         }
                         Console.WriteLine("Received JSON");
