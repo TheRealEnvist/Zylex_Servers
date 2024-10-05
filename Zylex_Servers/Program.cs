@@ -1,6 +1,7 @@
 ﻿using System.Net.Sockets;
 using System.Net;
 using System.Text;
+using Newtonsoft.Json;
 
 namespace Zylex_Servers
 {
@@ -122,6 +123,15 @@ namespace Zylex_Servers
                         string clientMessage = Encoding.UTF8.GetString(buffer, 0, bytesRead);
                         //Console.WriteLine($"Received: {clientMessage}");
                         Dictionary<string, object> json = new Dictionary<string, object>();
+                        try
+                        {
+                            Packet packet = JsonConvert.DeserializeObject<Packet>(clientMessage);
+                            Console.WriteLine("Deserialization successful.");
+                        }
+                        catch (JsonException ex)
+                        {
+                            Console.WriteLine($"Error deserializing JSON: {ex.Message}");
+                        }
                         try
                         {
                             json = ApplicationUtils.JsonStringToDictionary(clientMessage);
@@ -251,5 +261,12 @@ namespace Zylex_Servers
         }
 
 
+    }
+
+    public class Packet
+    {
+        public string Type { get; set; }
+        public string Value { get; set; }
+        public string ConnectionID { get; set; }
     }
 }
