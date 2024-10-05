@@ -13,7 +13,7 @@ namespace Zylex_Servers
         public static Dictionary<string, object> Settings = new Dictionary<string, object>();
         public static List<TcpClient> Clients = new List<TcpClient>();
         public static Dictionary<TcpClient, int> ConnectionIDs = new Dictionary<TcpClient, int>();
-        public static Dictionary<int, Dictionary<string, string>> ObjectsModified = new Dictionary<int, Dictionary<string,string>>();
+        public static Dictionary<int, Dictionary<string, string>> ObjectsModified = new Dictionary<int, Dictionary<string, string>>();
         public static TcpListener listener;
         public static TcpClient MasterClient;
         public static string appPath = AppDomain.CurrentDomain.BaseDirectory;
@@ -61,7 +61,7 @@ namespace Zylex_Servers
                 Clients.Add(client);
                 ConnectionIDs.Add(client, GenerateUniqueConnectionID(ConnectionIDs.Values.ToList<int>()));
                 Console.WriteLine("Client connected with connection id " + ConnectionIDs[client]);
-               
+
 
                 string responseMessage = BuildServerSyncLoad(ConnectionIDs[client]);
                 byte[] responseBuffer = Encoding.UTF8.GetBytes(responseMessage);
@@ -72,7 +72,7 @@ namespace Zylex_Servers
                 _ = Task.Run(() => HandleClientAsync(client));
             }
 
-            
+
 
         }
 
@@ -83,9 +83,9 @@ namespace Zylex_Servers
 
             do
             {
-                connectionID = random.Next(); 
+                connectionID = random.Next();
             }
-            while (existingIDs.Contains(connectionID)); 
+            while (existingIDs.Contains(connectionID));
 
             return connectionID;
         }
@@ -121,60 +121,68 @@ namespace Zylex_Servers
                         // Convert the bytes to a string
                         string clientMessage = Encoding.UTF8.GetString(buffer, 0, bytesRead);
                         //Console.WriteLine($"Received: {clientMessage}");
-                        if(ApplicationUtils.IsValidJson(clientMessage))
+                        Dictionary<string, object> json = new Dictionary<string, object>();
+                        try
                         {
-                            Console.WriteLine("Received JSON");
-                            Dictionary<string, object> json = ApplicationUtils.JsonStringToDictionary(clientMessage);
-                            if(ConnectionMethod == 4)
-                            {
-                                if (json.ContainsKey("type"))
-                                {
-                                    if (json["type"].ToString() == "Packet")
-                                    {
-                                        Console.WriteLine("Recived Packet | Decoding on server side..");
-                                        Dictionary<string, object> dict = ApplicationUtils.JsonStringToDictionary(clientMessage);
-                                        Dictionary<int, Dictionary<string, object>> Packet = DecodePacket(dict["value"].ToString());
-                                        foreach (Dictionary<string, object> i in Packet.Values)
-                                        {
-                                            if (ObjectsModified.ContainsKey(int.Parse(i["instanceID"].ToString())))
-                                            {
-                                                ObjectsModified[int.Parse(i["instanceID"].ToString())][i["type"].ToString()] = i["value"].ToString();
-                                            }
-                                            else
-                                            {
-                                                ObjectsModified[int.Parse(i["instanceID"].ToString())] = new Dictionary<string, string>();
-                                                ObjectsModified[int.Parse(i["instanceID"].ToString())][i["type"].ToString()] = i["value"].ToString();
-                                            }
-                                        }
-                                        Console.WriteLine("Updated server status!");
-                                        SendToOtherClients(clientMessage,client);
-                                        Console.WriteLine("Packet sent to other clients..");
+                            json = ApplicationUtils.JsonStringToDictionary(clientMessage);
+                        }
+                        catch (Exception ex)
+                        {
+                            Console.WriteLine("Couldnt parse JSON");
+                            return;
+                        }
+                        Console.WriteLine("Received JSON");
 
-                                        return;
+                        if (ConnectionMethod == 4)
+                        {
+                            if (json.ContainsKey("type"))
+                            {
+                                if (json["type"].ToString() == "Packet")
+                                {
+                                    Console.WriteLine("Recived Packet | Decoding on server side..");
+                                    Dictionary<string, object> dict = ApplicationUtils.JsonStringToDictionary(clientMessage);
+                                    Dictionary<int, Dictionary<string, object>> Packet = DecodePacket(dict["value"].ToString());
+                                    foreach (Dictionary<string, object> i in Packet.Values)
+                                    {
+                                        if (ObjectsModified.ContainsKey(int.Parse(i["instanceID"].ToString())))
+                                        {
+                                            ObjectsModified[int.Parse(i["instanceID"].ToString())][i["type"].ToString()] = i["value"].ToString();
+                                        }
+                                        else
+                                        {
+                                            ObjectsModified[int.Parse(i["instanceID"].ToString())] = new Dictionary<string, string>();
+                                            ObjectsModified[int.Parse(i["instanceID"].ToString())][i["type"].ToString()] = i["value"].ToString();
+                                        }
                                     }
+                                    Console.WriteLine("Updated server status!");
+                                    SendToOtherClients(clientMessage, client);
+                                    Console.WriteLine("Packet sent to other clients..");
+
+                                    return;
+                                }
+                            }
+                            else
+                            {
+                                if (ObjectsModified.ContainsKey(int.Parse(json["instanceID"].ToString())))
+                                {
+                                    ObjectsModified[int.Parse(json["instanceID"].ToString())][json["type"].ToString()] = json["value"].ToString();
                                 }
                                 else
                                 {
-                                    if (ObjectsModified.ContainsKey(int.Parse(json["instanceID"].ToString())))
-                                    {
-                                        ObjectsModified[int.Parse(json["instanceID"].ToString())][json["type"].ToString()] = json["value"].ToString();
-                                    }
-                                    else
-                                    {
-                                        ObjectsModified[int.Parse(json["instanceID"].ToString())] = new Dictionary<string, string>();
-                                        ObjectsModified[int.Parse(json["instanceID"].ToString())][json["type"].ToString()] = json["value"].ToString();
-                                    }
+                                    ObjectsModified[int.Parse(json["instanceID"].ToString())] = new Dictionary<string, string>();
+                                    ObjectsModified[int.Parse(json["instanceID"].ToString())][json["type"].ToString()] = json["value"].ToString();
                                 }
-                                
                             }
+
                         }
+
 
                         // Prepare a response message
                         string responseMessage = $"{clientMessage}";
                         byte[] responseBuffer = Encoding.UTF8.GetBytes(responseMessage);
 
                         // Send the response back to the client
-                        if(ConnectionMethod == 4)
+                        if (ConnectionMethod == 4)
                         {
                             SendToAllClients(responseMessage);
                         }
@@ -182,7 +190,7 @@ namespace Zylex_Servers
                         {
                             await stream.WriteAsync(responseBuffer, 0, responseBuffer.Length);
                         }
-                        
+
                         Console.WriteLine($"Sent: {responseMessage}");
                     }
                 }
@@ -230,7 +238,7 @@ namespace Zylex_Servers
             byte[] responseBuffer = Encoding.UTF8.GetBytes(message);
             foreach (TcpClient i in Clients)
             {
-                if(ConnectionIDs[i] != ConnectionIDs[client])
+                if (ConnectionIDs[i] != ConnectionIDs[client])
                 {
                     await i.GetStream().WriteAsync(responseBuffer, 0, responseBuffer.Length);
                 }
