@@ -123,31 +123,56 @@ namespace Zylex_Servers
                         string clientMessage = Encoding.UTF8.GetString(buffer, 0, bytesRead);
                         //Console.WriteLine($"Received: {clientMessage}");
                         Dictionary<string, object> json = new Dictionary<string, object>();
-                        try
-                        {
-                            Packet packet = JsonConvert.DeserializeObject<Packet>(clientMessage);
-                            Console.WriteLine("Deserialization successful.");
-                        }
-                        catch (JsonException ex)
-                        {
-                            Console.WriteLine($"Error deserializing JSON: {ex.Message}");
-                        }
+                        Packet packet = new Packet();
+                        bool PacketONLY = false;
                         try
                         {
                             json = ApplicationUtils.JsonStringToDictionary(clientMessage);
                         }
                         catch (Exception ex)
                         {
-                            Console.WriteLine("Couldnt parse JSON");
+                            Console.WriteLine("Couldnt parse JSON, trying for a packet");
                             Console.WriteLine(ex.Message);
-                            return;
+                            try
+                            {
+                                packet = JsonConvert.DeserializeObject<Packet>(clientMessage);
+                                Console.WriteLine("Deserialization successful! With packet data:");
+                                Console.WriteLine(packet.Value);
+                                PacketONLY = true;
+                            }
+                            catch (JsonException ex1)
+                            {
+                                Console.WriteLine($"Error deserializing JSON: {ex1.Message}");
+                            }
                         }
                         Console.WriteLine("Received JSON");
 
                         if (ConnectionMethod == 4)
                         {
-                            if (json.ContainsKey("type"))
+                            if (json.ContainsKey("type") || PacketONLY)
                             {
+                                if (PacketONLY)
+                                {
+                                    Console.WriteLine("Recived Packet | Decoding on server side..");
+                                    Dictionary<int, Dictionary<string, object>> Packet = DecodePacket(ApplicationUtils.DecodeFromBase64(packet.Value.ToString()));
+                                    foreach (Dictionary<string, object> i in Packet.Values)
+                                    {
+                                        if (ObjectsModified.ContainsKey(int.Parse(i["instanceID"].ToString())))
+                                        {
+                                            ObjectsModified[int.Parse(i["instanceID"].ToString())][i["type"].ToString()] = i["value"].ToString();
+                                        }
+                                        else
+                                        {
+                                            ObjectsModified[int.Parse(i["instanceID"].ToString())] = new Dictionary<string, string>();
+                                            ObjectsModified[int.Parse(i["instanceID"].ToString())][i["type"].ToString()] = i["value"].ToString();
+                                        }
+                                    }
+                                    Console.WriteLine("Updated server status!");
+                                    SendToOtherClients(clientMessage, client);
+                                    Console.WriteLine("Packet sent to other clients..");
+
+                                    return;
+                                }
                                 if (json["type"].ToString() == "Packet")
                                 {
                                     Console.WriteLine("Recived Packet | Decoding on server side..");
