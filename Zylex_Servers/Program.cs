@@ -132,7 +132,6 @@ namespace Zylex_Servers
                         catch (Exception ex)
                         {
                             Console.WriteLine("Couldnt parse JSON, trying for a packet");
-                            Console.WriteLine(ex.Message);
                             try
                             {
                                 packet = JsonConvert.DeserializeObject<Packet>(clientMessage);
