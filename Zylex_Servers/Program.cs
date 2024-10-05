@@ -65,9 +65,10 @@ namespace Zylex_Servers
             {
                 // Accept an incoming TCP client connection
                 TcpClient client = await listener.AcceptTcpClientAsync();
-                Console.WriteLine("Client connected!");
                 Clients.Add(client);
                 ConnectionIDs.Add(client, GenerateUniqueConnectionID(ConnectionIDs.Values.ToList<int>()));
+                Console.WriteLine("Client connected with connection id " + ConnectionIDs[client]);
+               
 
                 string responseMessage = BuildServerSyncLoad(ConnectionIDs[client]);
                 byte[] responseBuffer = Encoding.UTF8.GetBytes(responseMessage);
