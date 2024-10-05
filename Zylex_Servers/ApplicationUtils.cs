@@ -1,11 +1,12 @@
 ﻿using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Linq;
+using System.IO;
+using System.Net.Http;
 using System.Reflection;
 using System.Text;
-using System.Text.Json;
 using System.Threading.Tasks;
 
 namespace Zylex_Servers
@@ -14,7 +15,6 @@ namespace Zylex_Servers
     {
         public static string GetPublicIpAddress()
         {
-            // Call the async method synchronously
             return GetPublicIpAddressAsync().GetAwaiter().GetResult();
         }
 
@@ -39,10 +39,10 @@ namespace Zylex_Servers
 
         public static Dictionary<int, string> JsonStringToDictionaryIntString(string jsonString)
         {
-            // Deserialize the JSON string into a Dictionary
             var dictionary = JsonConvert.DeserializeObject<Dictionary<int, string>>(jsonString);
             return dictionary;
         }
+
         public static bool IsValidInteger(string input)
         {
             return int.TryParse(input, out _); // Use out _ to ignore the converted value
@@ -50,53 +50,61 @@ namespace Zylex_Servers
 
         public static void RestartApplication()
         {
-            // Get the path of the current executable
             string applicationPath = System.Diagnostics.Process.GetCurrentProcess().MainModule.FileName;
-
-            // Start a new instance of the application
             Process.Start(applicationPath);
-
-            // Close the current instance
             Environment.Exit(0); // Exit with code 0 (success)
         }
 
         public static Dictionary<string, object> ReadJsonFileToDictionary(string filePath)
         {
-            // Read the JSON file as a string
             string json = File.ReadAllText(filePath);
-
-            // Deserialize the JSON string into a dictionary
             Dictionary<string, object> dictionary = JsonConvert.DeserializeObject<Dictionary<string, object>>(json);
-
             return dictionary;
+        }
+
+        public static Dictionary<string, object> ReadLargeJsonFileToDictionary(string filePath)
+        {
+            using (StreamReader file = File.OpenText(filePath))
+            using (JsonTextReader reader = new JsonTextReader(file))
+            {
+                var serializer = new JsonSerializer();
+                Dictionary<string, object> dictionary = serializer.Deserialize<Dictionary<string, object>>(reader);
+                return dictionary;
+            }
         }
 
         public static Dictionary<string, object> JsonStringToDictionary(string jsonString)
         {
-            // Deserialize the JSON string into a Dictionary
-            var dictionary = JsonConvert.DeserializeObject<Dictionary<string, object>>(jsonString);
-            return dictionary;
+            using (StringReader stringReader = new StringReader(jsonString))
+            using (JsonTextReader reader = new JsonTextReader(stringReader))
+            {
+                var serializer = new JsonSerializer();
+                Dictionary<string, object> dictionary = serializer.Deserialize<Dictionary<string, object>>(reader);
+                return dictionary;
+            }
         }
 
         public static bool IsValidJson(string input)
         {
             if (string.IsNullOrWhiteSpace(input))
             {
-                return false; // An empty or null string cannot be a valid JSON.
+                return false;
             }
 
-            input = input.Trim(); // Remove any leading or trailing whitespace.
-
-            // Check if the input starts and ends with the common JSON delimiters.
-            if ((input.StartsWith("{") && input.EndsWith("}")) || // JSON Object
-                (input.StartsWith("[") && input.EndsWith("]")))   // JSON Array
+            input = input.Trim();
+            if ((input.StartsWith("{") && input.EndsWith("}")) || (input.StartsWith("[") && input.EndsWith("]")))
             {
                 try
                 {
-                    var obj = JsonConvert.DeserializeObject<object>(input);
-                    return true;
+                    using (StringReader stringReader = new StringReader(input))
+                    using (JsonTextReader jsonReader = new JsonTextReader(stringReader))
+                    {
+                        var serializer = new JsonSerializer();
+                        var obj = serializer.Deserialize<object>(jsonReader);
+                        return obj != null;
+                    }
                 }
-                catch (System.Text.Json.JsonException)
+                catch (JsonReaderException)
                 {
                     return false;
                 }
@@ -105,39 +113,67 @@ namespace Zylex_Servers
                     return false;
                 }
             }
-
             return false;
         }
 
         public static string DictionaryToJson(Dictionary<string, object> dictionary)
         {
-            // Serialize the dictionary to a JSON string
-            string jsonString = JsonConvert.SerializeObject(dictionary, Formatting.Indented);
-            return jsonString;
+            using (StringWriter stringWriter = new StringWriter())
+            using (JsonTextWriter jsonWriter = new JsonTextWriter(stringWriter))
+            {
+                jsonWriter.Formatting = Formatting.Indented;
+                var serializer = new JsonSerializer();
+                serializer.Serialize(jsonWriter, dictionary);
+                return stringWriter.ToString();
+            }
         }
+
         public static string DictionaryToJson(Dictionary<string, string> dictionary)
         {
-            // Serialize the dictionary to a JSON string
-            string jsonString = JsonConvert.SerializeObject(dictionary, Formatting.Indented);
-            return jsonString;
+            using (StringWriter stringWriter = new StringWriter())
+            using (JsonTextWriter jsonWriter = new JsonTextWriter(stringWriter))
+            {
+                jsonWriter.Formatting = Formatting.Indented;
+                var serializer = new JsonSerializer();
+                serializer.Serialize(jsonWriter, dictionary);
+                return stringWriter.ToString();
+            }
         }
+
         public static string DictionaryToJson(Dictionary<int, string> dictionary)
         {
-            // Serialize the dictionary to a JSON string
-            string jsonString = JsonConvert.SerializeObject(dictionary, Formatting.Indented);
-            return jsonString;
+            using (StringWriter stringWriter = new StringWriter())
+            using (JsonTextWriter jsonWriter = new JsonTextWriter(stringWriter))
+            {
+                jsonWriter.Formatting = Formatting.Indented;
+                var serializer = new JsonSerializer();
+                serializer.Serialize(jsonWriter, dictionary);
+                return stringWriter.ToString();
+            }
         }
+
         public static string DictionaryToJson(Dictionary<object, object> dictionary)
         {
-            // Serialize the dictionary to a JSON string
-            string jsonString = JsonConvert.SerializeObject(dictionary, Formatting.Indented);
-            return jsonString;
+            using (StringWriter stringWriter = new StringWriter())
+            using (JsonTextWriter jsonWriter = new JsonTextWriter(stringWriter))
+            {
+                jsonWriter.Formatting = Formatting.Indented;
+                var serializer = new JsonSerializer();
+                serializer.Serialize(jsonWriter, dictionary);
+                return stringWriter.ToString();
+            }
         }
+
         public static string DictionaryToJson(Dictionary<object, Dictionary<string, string>> dictionary)
         {
-            // Serialize the dictionary to a JSON string
-            string jsonString = JsonConvert.SerializeObject(dictionary, Formatting.Indented);
-            return jsonString;
+            using (StringWriter stringWriter = new StringWriter())
+            using (JsonTextWriter jsonWriter = new JsonTextWriter(stringWriter))
+            {
+                jsonWriter.Formatting = Formatting.Indented;
+                var serializer = new JsonSerializer();
+                serializer.Serialize(jsonWriter, dictionary);
+                return stringWriter.ToString();
+            }
         }
 
         public static Dictionary<string, object> ToDictionary(this object obj)
@@ -146,13 +182,11 @@ namespace Zylex_Servers
                 throw new ArgumentNullException(nameof(obj));
 
             Dictionary<string, object> dictionary = new Dictionary<string, object>();
-
-            // Get all properties of the object
             PropertyInfo[] properties = obj.GetType().GetProperties(BindingFlags.Public | BindingFlags.Instance);
 
             foreach (PropertyInfo property in properties)
             {
-                if (property.CanRead) // Check if the property can be read
+                if (property.CanRead)
                 {
                     dictionary.Add(property.Name, property.GetValue(obj, null));
                 }
@@ -160,20 +194,35 @@ namespace Zylex_Servers
 
             return dictionary;
         }
+
         public static string ListToJson<T>(List<T> list)
         {
-            if (list == null)
-                throw new ArgumentNullException(nameof(list));
-
-            return JsonConvert.SerializeObject(list, Formatting.Indented);
+            using (StringWriter stringWriter = new StringWriter())
+            using (JsonTextWriter jsonWriter = new JsonTextWriter(stringWriter))
+            {
+                jsonWriter.Formatting = Formatting.Indented;
+                var serializer = new JsonSerializer();
+                serializer.Serialize(jsonWriter, list);
+                return stringWriter.ToString();
+            }
         }
+
         public static List<T> JsonToList<T>(string json)
         {
             if (string.IsNullOrWhiteSpace(json))
                 throw new ArgumentNullException(nameof(json));
 
-            // Deserialize the JSON string back into a List of T
             return JsonConvert.DeserializeObject<List<T>>(json);
+        }
+
+        public static Dictionary<string, object> ReadJsonStreamToDictionary(Stream jsonStream)
+        {
+            using (StreamReader streamReader = new StreamReader(jsonStream))
+            using (JsonTextReader reader = new JsonTextReader(streamReader))
+            {
+                var serializer = new JsonSerializer();
+                return serializer.Deserialize<Dictionary<string, object>>(reader);
+            }
         }
     }
 }
