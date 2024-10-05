@@ -137,7 +137,21 @@ namespace Zylex_Servers
                                 {
                                     if (json["type"].ToString() == "Packet")
                                     {
-                                        SendToAllClients(clientMessage);
+                                        SendToOtherClients(clientMessage,client);
+                                        Dictionary<string, object> dict = ApplicationUtils.JsonStringToDictionary(clientMessage);
+                                        Dictionary<int, Dictionary<string, object>> Packet = DecodePacket(dict["value"].ToString());
+                                        foreach(Dictionary<string, object> i in Packet.Values)
+                                        {
+                                            if (ObjectsModified.ContainsKey(int.Parse(i["instanceID"].ToString())))
+                                            {
+                                                ObjectsModified[int.Parse(i["instanceID"].ToString())][i["type"].ToString()] = i["value"].ToString();
+                                            }
+                                            else
+                                            {
+                                                ObjectsModified[int.Parse(i["instanceID"].ToString())] = new Dictionary<string, string>();
+                                                ObjectsModified[int.Parse(i["instanceID"].ToString())][i["type"].ToString()] = i["value"].ToString();
+                                            }
+                                        }
                                         return;
                                     }
                                 }
@@ -185,6 +199,23 @@ namespace Zylex_Servers
                     ConnectionIDs.Remove(client);
                 }
             }
+        }
+
+        private static Dictionary<int, Dictionary<string, object>> DecodePacket(string Packet)
+        {
+            // Debug.Log("Decode packet ---");
+            // Debug.Log("1");
+            Dictionary<int, Dictionary<string, object>> listtoreturn = new Dictionary<int, Dictionary<string, object>>();
+            //Debug.Log("2");
+            //Debug.Log(Packet);
+            //Debug.Log("2.1");
+            Dictionary<int, string> stepone = ApplicationUtils.JsonStringToDictionaryIntString(Packet);
+            //Debug.Log("3");
+            foreach (int i in stepone.Keys)
+            {
+                listtoreturn.Add(i, ApplicationUtils.JsonStringToDictionary(stepone[i]));
+            }
+            return listtoreturn;
         }
 
         public static async void SendToAllClients(string message)

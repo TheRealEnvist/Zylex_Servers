@@ -36,6 +36,13 @@ namespace Zylex_Servers
                 }
             }
         }
+
+        public static Dictionary<int, string> JsonStringToDictionaryIntString(string jsonString)
+        {
+            // Deserialize the JSON string into a Dictionary
+            var dictionary = JsonConvert.DeserializeObject<Dictionary<int, string>>(jsonString);
+            return dictionary;
+        }
         public static bool IsValidInteger(string input)
         {
             return int.TryParse(input, out _); // Use out _ to ignore the converted value
