@@ -7,6 +7,7 @@ using System.IO;
 using System.Net.Http;
 using System.Reflection;
 using System.Text;
+using System.Text.Json;
 using System.Threading.Tasks;
 
 namespace Zylex_Servers
@@ -223,6 +224,24 @@ namespace Zylex_Servers
                 var serializer = new JsonSerializer();
                 return serializer.Deserialize<Dictionary<string, object>>(reader);
             }
+        }
+        public static string SerializeObject<T>(T obj)
+        {
+            return JsonConvert.SerializeObject(obj);
+        }
+
+        // Method to encode a string to Base64
+        public static string EncodeToBase64(string plainText)
+        {
+            byte[] plainTextBytes = System.Text.Encoding.UTF8.GetBytes(plainText);
+            return Convert.ToBase64String(plainTextBytes);
+        }
+
+        // Method to decode a Base64 string back to its original form
+        public static string DecodeFromBase64(string base64Encoded)
+        {
+            byte[] base64EncodedBytes = Convert.FromBase64String(base64Encoded);
+            return System.Text.Encoding.UTF8.GetString(base64EncodedBytes);
         }
     }
 }
