@@ -137,7 +137,7 @@ namespace Zylex_Servers
                                 {
                                     if (json["type"].ToString() == "Packet")
                                     {
-                                        SendToOtherClients(clientMessage, client);
+                                        SendToAllClients(clientMessage);
                                         return;
                                     }
                                 }
