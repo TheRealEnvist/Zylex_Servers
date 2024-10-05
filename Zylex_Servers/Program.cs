@@ -128,11 +128,10 @@ namespace Zylex_Servers
                         // Convert the bytes to a string
                         string clientMessage = Encoding.UTF8.GetString(buffer, 0, bytesRead);
                         //Console.WriteLine($"Received: {clientMessage}");
-                        Dictionary<string, object> json = ApplicationUtils.JsonStringToDictionary(clientMessage);
-                        if (true)
+                        if(ApplicationUtils.IsValidJson(clientMessage))
                         {
                             Console.WriteLine("Received JSON");
-                            
+                            Dictionary<string, object> json = ApplicationUtils.JsonStringToDictionary(clientMessage);
                             if(ConnectionMethod == 4)
                             {
                                 if (json.ContainsKey("type"))
