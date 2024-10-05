@@ -1,6 +1,7 @@
 ﻿using Newtonsoft.Json;
 using System.Diagnostics;
 using System.Reflection;
+using System.Text;
 
 namespace Zylex_Servers
 {
@@ -234,6 +235,28 @@ namespace Zylex_Servers
         {
             byte[] base64EncodedBytes = Convert.FromBase64String(base64Encoded);
             return System.Text.Encoding.UTF8.GetString(base64EncodedBytes);
+        }
+
+        public static string EncodeToHex(string plainText)
+        {
+            byte[] plainTextBytes = Encoding.UTF8.GetBytes(plainText);
+            StringBuilder hexBuilder = new StringBuilder(plainTextBytes.Length * 2);
+            foreach (byte b in plainTextBytes)
+            {
+                hexBuilder.AppendFormat("{0:x2}", b); // Format each byte as hexadecimal
+            }
+            return hexBuilder.ToString();
+        }
+
+        // Decode a Hexadecimal string
+        public static string DecodeFromHex(string hexEncoded)
+        {
+            byte[] bytes = new byte[hexEncoded.Length / 2];
+            for (int i = 0; i < hexEncoded.Length; i += 2)
+            {
+                bytes[i / 2] = Convert.ToByte(hexEncoded.Substring(i, 2), 16); // Convert hex to byte
+            }
+            return Encoding.UTF8.GetString(bytes);
         }
     }
 }

@@ -153,7 +153,7 @@ namespace Zylex_Servers
                                 if (PacketONLY)
                                 {
                                     Console.WriteLine("Recived Packet | Decoding on server side..");
-                                    Dictionary<int, Dictionary<string, object>> Packet = DecodePacket(ApplicationUtils.DecodeFromBase64(packet.Value.ToString()));
+                                    Dictionary<int, Dictionary<string, object>> Packet = DecodePacket(ApplicationUtils.DecodeFromHex(packet.Value.ToString()));
                                     foreach (Dictionary<string, object> i in Packet.Values)
                                     {
                                         if (ObjectsModified.ContainsKey(int.Parse(i["instanceID"].ToString())))
@@ -176,7 +176,7 @@ namespace Zylex_Servers
                                 {
                                     Console.WriteLine("Recived Packet | Decoding on server side..");
                                     Dictionary<string, object> dict = ApplicationUtils.JsonStringToDictionary(clientMessage);
-                                    Dictionary<int, Dictionary<string, object>> Packet = DecodePacket(dict["value"].ToString());
+                                    Dictionary<int, Dictionary<string, object>> Packet = DecodePacket(ApplicationUtils.DecodeFromHex(dict["value"].ToString()));
                                     foreach (Dictionary<string, object> i in Packet.Values)
                                     {
                                         if (ObjectsModified.ContainsKey(int.Parse(i["instanceID"].ToString())))
