@@ -191,7 +191,7 @@ namespace Zylex_Servers
                                         }
                                     }
                                     Console.WriteLine("Updated server status!");
-                                    SendToOtherClients(clientMessage, client);
+                                    SendToAllClients(clientMessage);
                                     Console.WriteLine("Packet sent to other clients..");
 
                                     continue;
