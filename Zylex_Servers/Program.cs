@@ -191,7 +191,7 @@ namespace Zylex_Servers
                                         }
                                     }
                                     Console.WriteLine("Updated server status!");
-                                    SendToAllClients(clientMessage);
+                                    await SendToAllClients(clientMessage);
                                     Console.WriteLine("Packet sent to other clients..");
 
                                     continue;
@@ -220,7 +220,7 @@ namespace Zylex_Servers
                         // Send the response back to the client
                         if (ConnectionMethod == 4)
                         {
-                            SendToAllClients(responseMessage);
+                            await SendToAllClients(responseMessage);
                         }
                         else
                         {
