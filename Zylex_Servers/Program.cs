@@ -120,7 +120,8 @@ namespace Zylex_Servers
                     while ((bytesRead = await stream.ReadAsync(buffer, 0, buffer.Length)) != 0)
                     {
                         // Convert the bytes to a string
-                        string clientMessage = Encoding.UTF8.GetString(buffer, 0, bytesRead);
+                        string clientMessage = ApplicationUtils.DecodeFromBase64(Encoding.UTF8.GetString(buffer, 0, bytesRead));
+                        Console.WriteLine(clientMessage);
                         //Console.WriteLine($"Received: {clientMessage}");
                         Dictionary<string, object> json = new Dictionary<string, object>();
                         Packet packet = new Packet();
