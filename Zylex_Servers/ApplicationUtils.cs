@@ -1,5 +1,6 @@
 ﻿using Newtonsoft.Json;
 using System.Diagnostics;
+using System.Net.Sockets;
 using System.Reflection;
 using System.Text;
 
@@ -69,13 +70,8 @@ namespace Zylex_Servers
 
         public static Dictionary<string, object> JsonStringToDictionary(string jsonString)
         {
-            using (StringReader stringReader = new StringReader(jsonString))
-            using (JsonTextReader reader = new JsonTextReader(stringReader))
-            {
-                var serializer = new JsonSerializer();
-                Dictionary<string, object> dictionary = serializer.Deserialize<Dictionary<string, object>>(reader);
-                return dictionary;
-            }
+            // Deserialize the JSON string directly into a Dictionary<string, object>
+            return JsonConvert.DeserializeObject<Dictionary<string, object>>(jsonString);
         }
 
         public static bool IsValidJson(string input)
@@ -230,11 +226,70 @@ namespace Zylex_Servers
             return Convert.ToBase64String(plainTextBytes);
         }
 
-        // Method to decode a Base64 string back to its original form
+        public static string ReadCompleteStringFromStream(NetworkStream stream)
+        {
+            // Create a memory stream to hold the received data
+            using (MemoryStream memoryStream = new MemoryStream())
+            {
+                byte[] buffer = new byte[8192]; // Buffer size for reading data in chunks
+                int bytesRead;
+
+                // Read until there's no more data coming from the stream
+                while (stream.CanRead && (bytesRead = stream.Read(buffer, 0, buffer.Length)) > 0)
+                {
+                    memoryStream.Write(buffer, 0, bytesRead);
+                }
+
+                // Convert the memory stream to a UTF-8 encoded string
+                return Encoding.UTF8.GetString(memoryStream.ToArray());
+            }
+        }
+
+        // Use this function to read the complete Base64 string from the stream first
         public static string DecodeFromBase64(string base64Encoded)
         {
-            byte[] base64EncodedBytes = Convert.FromBase64String(base64Encoded);
-            return System.Text.Encoding.UTF8.GetString(base64EncodedBytes);
+            try
+            {
+                // Check if the received string is not null or empty
+                if (string.IsNullOrEmpty(base64Encoded))
+                {
+                    throw new ArgumentException("The provided Base64 string is null or empty.");
+                }
+
+                // Handle potential missing padding
+                base64Encoded = FixBase64Padding(base64Encoded);
+
+                // Decode the Base64 string
+                byte[] base64EncodedBytes = Convert.FromBase64String(base64Encoded);
+
+                // Return the decoded string
+                return System.Text.Encoding.UTF8.GetString(base64EncodedBytes);
+            }
+            catch (FormatException ex)
+            {
+                Console.WriteLine($"Base64 string format error: {ex.Message}");
+                return null; // Or handle the error as needed
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Unexpected error during Base64 decoding: {ex.Message}");
+                return null;
+            }
+        }
+
+        // Helper method to fix missing padding in Base64 strings
+        private static string FixBase64Padding(string base64)
+        {
+            // Calculate the number of padding characters required
+            int padding = 4 - (base64.Length % 4);
+
+            // If padding is required (and not 4), add '=' to the end
+            if (padding > 0 && padding < 4)
+            {
+                base64 += new string('=', padding);
+            }
+
+            return base64;
         }
 
         public static string EncodeToHex(string plainText)

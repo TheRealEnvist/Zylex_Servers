@@ -2,6 +2,7 @@
 using System.Net;
 using System.Text;
 using Newtonsoft.Json;
+using System.Diagnostics;
 
 namespace Zylex_Servers
 {
@@ -13,9 +14,11 @@ namespace Zylex_Servers
         public static int Port;
         public static Dictionary<string, object> Settings = new Dictionary<string, object>();
         public static List<TcpClient> Clients = new List<TcpClient>();
+        public static Dictionary<TcpClient, NetworkStream> ClientStream = new Dictionary<TcpClient, NetworkStream>();
         public static Dictionary<TcpClient, int> ConnectionIDs = new Dictionary<TcpClient, int>();
         public static Dictionary<int, Dictionary<string, string>> ObjectsModified = new Dictionary<int, Dictionary<string, string>>();
         public static TcpListener listener;
+        public static Socket ServerSocket;
         public static TcpClient MasterClient;
         public static string appPath = AppDomain.CurrentDomain.BaseDirectory;
         static void Main(string[] args)
@@ -54,12 +57,14 @@ namespace Zylex_Servers
             listener = new TcpListener(IPAddress.Any, Port);
             listener.Start();
             Console.WriteLine("Started server on: " + ApplicationUtils.GetPublicIpAddress() + ":" + Port);
+            ServerSocket = listener.Server;
 
             while (true)
             {
                 // Accept an incoming TCP client connection
                 TcpClient client = await listener.AcceptTcpClientAsync();
                 Clients.Add(client);
+                ClientStream.Add(client, client.GetStream());
                 ConnectionIDs.Add(client, GenerateUniqueConnectionID(ConnectionIDs.Values.ToList<int>()));
                 Console.WriteLine("Client connected with connection id " + ConnectionIDs[client]);
 
@@ -111,21 +116,44 @@ namespace Zylex_Servers
             using (client)
             {
                 NetworkStream stream = client.GetStream();
-                byte[] buffer = new byte[1024];
+                byte[] lengthBuffer = new byte[4]; // Buffer to hold the length prefix (4 bytes for an integer)
+                byte[] messageBuffer;
                 int bytesRead;
 
                 try
                 {
-                    // Read data from the client
-                    while ((bytesRead = await stream.ReadAsync(buffer, 0, buffer.Length)) != 0)
+                    while (true)
                     {
-                        // Convert the bytes to a string
-                        string clientMessage = ApplicationUtils.DecodeFromBase64(Encoding.UTF8.GetString(buffer, 0, bytesRead));
-                        Console.WriteLine(clientMessage);
+
+
+                        bytesRead = await stream.ReadAsync(lengthBuffer, 0, lengthBuffer.Length);
+                        if (bytesRead != 4)
+                            throw new Exception("Failed to read message length prefix. Client may have disconnected.");
+
+                        // Convert lengthBuffer to an integer to get the total message length
+                        int messageLength = BitConverter.ToInt32(lengthBuffer, 0);
+
+                        // 2. Allocate buffer based on the received message length
+                        messageBuffer = new byte[messageLength];
+                        int totalBytesRead = 0;
+
+                        // 3. Read until the entire message is received
+                        while (totalBytesRead < messageLength)
+                        {
+                            bytesRead = await stream.ReadAsync(messageBuffer, totalBytesRead, messageLength - totalBytesRead);
+                            if (bytesRead == 0)
+                                throw new Exception("Client disconnected before the full message was received.");
+
+                            totalBytesRead += bytesRead;
+                        }
+
+                        // 4. At this point, the entire message is in `messageBuffer`
+                        string base64Message = Encoding.UTF8.GetString(messageBuffer);
+                        string clientMessage = ApplicationUtils.DecodeFromBase64(base64Message);
+                        Console.WriteLine($"Full Base64 String Received: {base64Message}");
+                        Console.WriteLine($"Decoded Message: {clientMessage}");
                         //Console.WriteLine($"Received: {clientMessage}");
                         Dictionary<string, object> json = new Dictionary<string, object>();
-                        Packet packet = new Packet();
-                        bool PacketONLY = false;
                         try
                         {
                             json = ApplicationUtils.JsonStringToDictionary(clientMessage);
@@ -133,51 +161,23 @@ namespace Zylex_Servers
                         catch (Exception ex)
                         {
                             Console.WriteLine("Couldnt parse JSON, trying for a packet");
-                            try
-                            {
-                                packet = JsonConvert.DeserializeObject<Packet>(clientMessage);
-                                Console.WriteLine("Deserialization successful! With packet data:");
-                                Console.WriteLine(packet.Value);
-                                PacketONLY = true;
-                            }
-                            catch (JsonException ex1)
-                            {
-                                Console.WriteLine($"Error deserializing JSON: {ex1.Message}");
-                            }
+                            return;
                         }
                         Console.WriteLine("Received JSON");
 
                         if (ConnectionMethod == 4)
                         {
-                            if (json.ContainsKey("type") || PacketONLY)
+                            if (json.ContainsKey("type"))
                             {
-                                if (PacketONLY)
-                                {
-                                    Console.WriteLine("Recived Packet | Decoding on server side..");
-                                    Dictionary<int, Dictionary<string, object>> Packet = DecodePacket(ApplicationUtils.DecodeFromHex(packet.Value.ToString()));
-                                    foreach (Dictionary<string, object> i in Packet.Values)
-                                    {
-                                        if (ObjectsModified.ContainsKey(int.Parse(i["instanceID"].ToString())))
-                                        {
-                                            ObjectsModified[int.Parse(i["instanceID"].ToString())][i["type"].ToString()] = i["value"].ToString();
-                                        }
-                                        else
-                                        {
-                                            ObjectsModified[int.Parse(i["instanceID"].ToString())] = new Dictionary<string, string>();
-                                            ObjectsModified[int.Parse(i["instanceID"].ToString())][i["type"].ToString()] = i["value"].ToString();
-                                        }
-                                    }
-                                    Console.WriteLine("Updated server status!");
-                                    SendToOtherClients(clientMessage, client);
-                                    Console.WriteLine("Packet sent to other clients..");
-
-                                    return;
-                                }
                                 if (json["type"].ToString() == "Packet")
                                 {
                                     Console.WriteLine("Recived Packet | Decoding on server side..");
                                     Dictionary<string, object> dict = ApplicationUtils.JsonStringToDictionary(clientMessage);
-                                    Dictionary<int, Dictionary<string, object>> Packet = DecodePacket(ApplicationUtils.DecodeFromHex(dict["value"].ToString()));
+                                    Console.WriteLine("1");
+                                    Console.WriteLine(dict["value"].ToString());
+                                    Dictionary<int, Dictionary<string, object>> Packet = DecodePacket(dict["value"].ToString());
+
+                                    Console.WriteLine("2");
                                     foreach (Dictionary<string, object> i in Packet.Values)
                                     {
                                         if (ObjectsModified.ContainsKey(int.Parse(i["instanceID"].ToString())))
@@ -194,7 +194,7 @@ namespace Zylex_Servers
                                     SendToOtherClients(clientMessage, client);
                                     Console.WriteLine("Packet sent to other clients..");
 
-                                    return;
+                                    continue;
                                 }
                             }
                             else
@@ -239,33 +239,28 @@ namespace Zylex_Servers
                     Console.WriteLine("Client disconnected.");
                     Clients.Remove(client);
                     ConnectionIDs.Remove(client);
+                    ClientStream.Remove(client);
                 }
             }
         }
-
         private static Dictionary<int, Dictionary<string, object>> DecodePacket(string Packet)
         {
-            // Debug.Log("Decode packet ---");
-            // Debug.Log("1");
             Dictionary<int, Dictionary<string, object>> listtoreturn = new Dictionary<int, Dictionary<string, object>>();
-            //Debug.Log("2");
-            //Debug.Log(Packet);
-            //Debug.Log("2.1");
-            Dictionary<int, string> stepone = ApplicationUtils.JsonStringToDictionaryIntString(Packet);
-            //Debug.Log("3");
-            foreach (int i in stepone.Keys)
+            Dictionary<string,object> packet = ApplicationUtils.JsonStringToDictionary(Packet);
+            foreach(string packetKey in packet.Keys)
             {
-                listtoreturn.Add(i, ApplicationUtils.JsonStringToDictionary(stepone[i]));
+                listtoreturn.Add(int.Parse(packetKey), ApplicationUtils.JsonStringToDictionary(packet[packetKey].ToString()));
             }
             return listtoreturn;
         }
 
         public static async void SendToAllClients(string message)
         {
+            
             byte[] responseBuffer = Encoding.UTF8.GetBytes(message);
             foreach (TcpClient i in Clients)
             {
-                await i.GetStream().WriteAsync(responseBuffer, 0, responseBuffer.Length);
+                await ClientStream[i].WriteAsync(responseBuffer, 0, responseBuffer.Length);
             }
         }
 
@@ -276,7 +271,7 @@ namespace Zylex_Servers
             {
                 if (ConnectionIDs[i] != ConnectionIDs[client])
                 {
-                    await i.GetStream().WriteAsync(responseBuffer, 0, responseBuffer.Length);
+                    await ClientStream[i].WriteAsync(responseBuffer, 0, responseBuffer.Length);
                 }
             }
         }
