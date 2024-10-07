@@ -14,7 +14,7 @@ namespace Zylex_Servers
         public static int Port;
         public static Dictionary<string, object> Settings = new Dictionary<string, object>();
         public static List<TcpClient> Clients = new List<TcpClient>();
-        public static Dictionary<TcpClient, NetworkStream> ClientStreams = new Dictionary<TcpClient, NetworkStream>();
+        public static Dictionary<TcpClient, NetworkStream> ClientStream = new Dictionary<TcpClient, NetworkStream>();
         public static Dictionary<TcpClient, int> ConnectionIDs = new Dictionary<TcpClient, int>();
         public static Dictionary<int, Dictionary<string, string>> ObjectsModified = new Dictionary<int, Dictionary<string, string>>();
         public static TcpListener listener;
@@ -64,7 +64,7 @@ namespace Zylex_Servers
                 // Accept an incoming TCP client connection
                 TcpClient client = await listener.AcceptTcpClientAsync();
                 Clients.Add(client);
-                ClientStreams.Add(client, client.GetStream());
+                ClientStream.Add(client, client.GetStream());
                 ConnectionIDs.Add(client, GenerateUniqueConnectionID(ConnectionIDs.Values.ToList<int>()));
                 Console.WriteLine("Client connected with connection id " + ConnectionIDs[client]);
 
@@ -191,7 +191,7 @@ namespace Zylex_Servers
                                         }
                                     }
                                     Console.WriteLine("Updated server status!");
-                                    await SendToAllClients(clientMessage);
+                                    SendToAllClients(clientMessage);
                                     Console.WriteLine("Packet sent to other clients..");
 
                                     continue;
@@ -220,7 +220,7 @@ namespace Zylex_Servers
                         // Send the response back to the client
                         if (ConnectionMethod == 4)
                         {
-                            await SendToAllClients(responseMessage);
+                            SendToAllClients(responseMessage);
                         }
                         else
                         {
@@ -239,7 +239,7 @@ namespace Zylex_Servers
                     Console.WriteLine("Client disconnected.");
                     Clients.Remove(client);
                     ConnectionIDs.Remove(client);
-                    ClientStreams.Remove(client);
+                    ClientStream.Remove(client);
                 }
             }
         }
@@ -254,45 +254,24 @@ namespace Zylex_Servers
             return listtoreturn;
         }
 
-        public static async Task SendToAllClients(string message)
+        public static async void SendToAllClients(string message)
         {
+            
             byte[] responseBuffer = Encoding.UTF8.GetBytes(message);
-            foreach (TcpClient client in Clients)
+            foreach (TcpClient i in Clients)
             {
-                try
-                {
-                    if (ClientStreams.TryGetValue(client, out NetworkStream stream))
-                    {
-                        await stream.WriteAsync(responseBuffer, 0, responseBuffer.Length);
-                    }
-                }
-                catch (Exception ex)
-                {
-                    // Handle exceptions (log or notify)
-                    Console.WriteLine($"Error sending to client {ConnectionIDs[client]}: {ex.Message}");
-                }
+                await ClientStream[i].WriteAsync(responseBuffer, 0, responseBuffer.Length);
             }
         }
 
-        public static async Task SendToOtherClients(string message, TcpClient client)
+        public static async void SendToOtherClients(string message, TcpClient client)
         {
             byte[] responseBuffer = Encoding.UTF8.GetBytes(message);
-            foreach (TcpClient otherClient in Clients)
+            foreach (TcpClient i in Clients)
             {
-                if (ConnectionIDs[otherClient] != ConnectionIDs[client])
+                if (ConnectionIDs[i] != ConnectionIDs[client])
                 {
-                    try
-                    {
-                        if (ClientStreams.TryGetValue(otherClient, out NetworkStream stream))
-                        {
-                            await stream.WriteAsync(responseBuffer, 0, responseBuffer.Length);
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        // Handle exceptions (log or notify)
-                        Console.WriteLine($"Error sending to client {ConnectionIDs[otherClient]}: {ex.Message}");
-                    }
+                    await ClientStream[i].WriteAsync(responseBuffer, 0, responseBuffer.Length);
                 }
             }
         }
